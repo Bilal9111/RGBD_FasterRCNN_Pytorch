@@ -1,0 +1,72 @@
+
+Project Commands
+
+set SESSION=2
+set EPOCH=9
+set CHECKPOINT=5010
+set DECAY_STEP=5
+set LEARNING_RATE=0.001
+
+Training model:
+
+V1 - If you don't want to resume training
+python trainval_net.py --dataset kitti_voc --net res101 --bs 1 --nw 8 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs
+
+V2 - If you want to resume training
+python trainval_net.py --dataset kitti_voc --net res101 --bs 1 --nw 8 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --r True 
+
+
+
+Testing model:
+
+python test_net.py --dataset kitti_voc --net res101 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
+
+
+
+Demo:
+
+python demo.py --net res101 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda --load_dir models
+
+
+
+
+
+Github commands
+
+git add .
+git reset -- data/*
+git reset -- models/*
+git commit -m "another commit"
+git push origin master --force
+
+Todo:
+
+
+		convert training and testing data to png format and make the system work with png formats	
+		Reformat the code
+Done	make 4-channel object detection work without the pretrained weights
+Done	make 4-channel object detection work with caffe weights		
+		convert training and testing data to png format and make the system work with png formats
+		use ALL the training data provided in the KITTI 2D
+		use advanced depth estimation
+		
+		
+Track:
+
+
+1.	Changed all files to support training different databases and whether with depth or not
+2.	Changed dataloader file of pytorch to provide a temporary fix for FileNotFoundError
+3.	adding track file and time functionality to trainval file
+
+
+python submission.py --maxdisp 192 --model stackhourglass --KITTI 2015 --datapath data/kitti_2d/training/ --loadmodel models/model.tar
+python finetune.py --maxdisp 192 --model stackhourglass --datatype 2015 --datapath data/data_scene_flow/training/ --epochs 300 --loadmodel models/model.tar --savemodel output/model/
+
+python3 kitti2pascalvoc.py --kitti kitti_2d --out output
+
+
+
+removed image 6955 from left and right images for depth pyramid
+removed all images from submissions_output folder
+depth images for all training images calculated 
+

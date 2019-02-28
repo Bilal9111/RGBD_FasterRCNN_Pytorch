@@ -1,0 +1,38 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import cv2
+import numpy as np
+from os import listdir
+
+def get_pixel_mean_single_channel(path_to_image):
+	img = cv2.imread(path_to_image)
+	img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+	h,w = img.shape
+	count = 0
+	m_count = 0
+	for height in range(0,h):
+		for width in range(0,w):
+			count += 1
+			m_count += img[height][width]
+	return m_count/count
+
+
+
+
+path_to_folder = "standard_stereo"
+
+
+
+files = listdir(path_to_folder)
+files.sort()
+print("loaded_files")
+
+master_mean = 0
+for i in range(0,len(files)):
+	current_file = files[i]
+	print(current_file)	
+	master_mean += get_pixel_mean_single_channel(path_to_folder+"/"+current_file)
+print(master_mean/len(files))
+print("operation finished")
