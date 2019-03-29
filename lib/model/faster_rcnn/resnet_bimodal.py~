@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 from model.utils.config import cfg
-from model.faster_rcnn.faster_rcnn import _fasterRCNN
+from model.faster_rcnn.faster_rcnn_bimodal import _fasterRCNN
 
 import torch
 import torch.nn as nn
@@ -70,28 +70,9 @@ model_urls = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ########################################################################################################
 #
-# The two classes in this sectin are completely useless to us as they are only used in resnet18 and resnet34
+# The two classes in this section are completely useless to us as they are only used in resnet18 and resnet34
 #
 # This class is completely useless to us 
 def conv3x3(in_planes, out_planes, stride=1):
@@ -139,39 +120,13 @@ class BasicBlock(nn.Module):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# This is basicallly just a neural network module used as a lower level block in our neural network design
+# This is basically just a neural network module used as a lower level block in our neural network design
 class Bottleneck(nn.Module):
   expansion = 4
 
   def __init__(self, inplanes, planes, stride=1, downsample=None):
     super(Bottleneck, self).__init__()
+    #print(inplanes, planes)
     self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, stride=stride, bias=False) # change
     self.bn1 = nn.BatchNorm2d(planes)
     self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, # change
@@ -185,7 +140,6 @@ class Bottleneck(nn.Module):
 
   def forward(self, x):
     residual = x
-
     out = self.conv1(x)
     out = self.bn1(out)
     out = self.relu(out)
@@ -209,52 +163,29 @@ class Bottleneck(nn.Module):
 
 
 
+
+
+
 # This is the higher level implementation of the our resnet101 architecture. Over here we use the Bottleneck class, above, to define the middle layers in the neural network
 class ResNet(nn.Module):
   def __init__(self, block, layers, num_classes=1000):
     self.inplanes = 64
     super(ResNet, self).__init__()
+    self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+                 bias=False)
+    self.bn1 = nn.BatchNorm2d(64)
+    self.relu = nn.ReLU(inplace=True)
+    self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True) # change
+     
+    self.layer1 = self._make_layer(block, 64, layers[0])
+    self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+    self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+    self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
     
-    
-    
-    
-    
-    """ RGB PATH HERE"""
-    self.conv1_a = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    self.bn1_a = nn.BatchNorm2d(64)
-    self.relu_a = nn.ReLU(inplace=True)
-    self.maxpool_a = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True)
-    self.layer1_a = self._make_layer(block, 64, layers[0])
-    self.layer2_a = self._make_layer(block, 128, layers[1], stride=2)
-    self.layer3_a = self._make_layer(block, 256, layers[2], stride=2)
-    self.layer4_a = self._make_layer(block, 512, layers[3], stride=2)
-
     # it is slightly better whereas slower to set stride = 1
     # self.layer4 = self._make_layer(block, 512, layers[3], stride=1)
-    self.avgpool_a = nn.AvgPool2d(7)
-    #self.fc_a = nn.Linear(512 * block.expansion, num_classes)
-
-    """ DEPTH PATH HERE """
-    self.conv1_b = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    self.bn1_b = nn.BatchNorm2d(64)
-    self.relu_b = nn.ReLU(inplace=True)
-    self.maxpool_b = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True)
-    self.layer1_b = self._make_layer(block, 64, layers[0])
-    self.layer2_b = self._make_layer(block, 128, layers[1], stride=2)
-    self.layer3_b = self._make_layer(block, 256, layers[2], stride=2)
-    self.layer4_b = self._make_layer(block, 512, layers[3], stride=2)
-
-    # it is slightly better whereas slower to set stride = 1
-    # self.layer4 = self._make_layer(block, 512, layers[3], stride=1)
-    self.avgpool_b = nn.AvgPool2d(7)
-    #self.fc_b = nn.Linear(512 * block.expansion, num_classes)
-    
-    """ CONCATENATION HERE """
-    self.fc_master = nn.Linear(512 * block.expansion * 2, num_classes)
-
-
-
-
+    self.avgpool = nn.AvgPool2d(7)
+    self.fc = nn.Linear(512 * block.expansion, num_classes)
 
     for m in self.modules():
       if isinstance(m, nn.Conv2d):
@@ -272,50 +203,88 @@ class ResNet(nn.Module):
               kernel_size=1, stride=stride, bias=False),
         nn.BatchNorm2d(planes * block.expansion),
       )
-
     layers = []
     layers.append(block(self.inplanes, planes, stride, downsample))
     self.inplanes = planes * block.expansion
     for i in range(1, blocks):
       layers.append(block(self.inplanes, planes))
-
     return nn.Sequential(*layers)
 
-  def forward(self, x,y):
-    """ RGB PATH HERE"""
-    x = self.conv1_a(x)
-    x = self.bn1_a(x)
-    x = self.relu_a(x)
-    x = self.maxpool_a(x)
+  def forward(self, x):
+    x = self.conv1(x)
+    x = self.bn1(x)
+    x = self.relu(x)
+    x = self.maxpool(x)
+    x = self.layer1(x)
+    x = self.layer2(x)
+    x = self.layer3(x)
+    x = self.layer4(x)
 
-    x = self.layer1_a(x)
-    x = self.layer2_a(x)
-    x = self.layer3_a(x)
-    x = self.layer4_a(x)
-
-    x = self.avgpool_a(x)
+    x = self.avgpool(x)
     x = x.view(x.size(0), -1)
-    #x = self.fc_a(x)
-    """ DEPTH PATH HERE """
-    y = self.conv1_b(y)
-    y = self.bn1_b(y)
-    y = self.relu_b(y)
-    y = self.maxpool_b(y)
+    x = self.fc(x)
+    return x
 
-    y = self.layer1_b(y)
-    y = self.layer2_b(y)
-    y = self.layer3_b(y)
-    y = self.layer4_b(y)
 
-    y = self.avgpool_b(y)
-    y = y.view(y.size(0), -1)
-    #y = self.fc_b(y)
-    """ CONCATENATION HERE """
-    concatenated_tensor = torch.cat((x,y),1)
-    output = self.fc_master(concatenated_tensor)
 
-    return output
+# This is the higher level implementation of the our resnet101 architecture. Over here we use the Bottleneck class, above, to define the middle layers in the neural network
+class ResNet_Depth_Path(nn.Module):
+  def __init__(self, block, layers, num_classes=1000):
+    self.inplanes = 64
+    super(ResNet, self).__init__()
+    self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+                 bias=False)
+    self.bn1 = nn.BatchNorm2d(64)
+    self.relu = nn.ReLU(inplace=True)
+    self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True) # change
+     
+    self.layer1 = self._make_layer(block, 64, layers[0])
+    self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+    self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+    #self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+    
+    # it is slightly better whereas slower to set stride = 1
+    # self.layer4 = self._make_layer(block, 512, layers[3], stride=1)
+    self.avgpool = nn.AvgPool2d(7)
+    self.fc = nn.Linear(256 * block.expansion, num_classes)
 
+    for m in self.modules():
+      if isinstance(m, nn.Conv2d):
+        n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+        m.weight.data.normal_(0, math.sqrt(2. / n))
+      elif isinstance(m, nn.BatchNorm2d):
+        m.weight.data.fill_(1)
+        m.bias.data.zero_()
+
+  def _make_layer(self, block, planes, blocks, stride=1):
+    downsample = None
+    if stride != 1 or self.inplanes != planes * block.expansion:
+      downsample = nn.Sequential(
+        nn.Conv2d(self.inplanes, planes * block.expansion,
+              kernel_size=1, stride=stride, bias=False),
+        nn.BatchNorm2d(planes * block.expansion),
+      )
+    layers = []
+    layers.append(block(self.inplanes, planes, stride, downsample))
+    self.inplanes = planes * block.expansion
+    for i in range(1, blocks):
+      layers.append(block(self.inplanes, planes))
+    return nn.Sequential(*layers)
+
+  def forward(self, x):
+    x = self.conv1(x)
+    x = self.bn1(x)
+    x = self.relu(x)
+    x = self.maxpool(x)
+    x = self.layer1(x)
+    x = self.layer2(x)
+    x = self.layer3(x)
+    #x = self.layer4(x)
+
+    x = self.avgpool(x)
+    x = x.view(x.size(0), -1)
+    x = self.fc(x)
+    return x
 
 
 
@@ -334,7 +303,6 @@ class ResNet(nn.Module):
 #
 # These are the set of functions which are used by the main resnet class below to initialise the proper architecture
 #
-
 # This function is useless to us
 def resnet18(pretrained=False): 
   """Constructs a ResNet-18 model.
@@ -375,6 +343,16 @@ def resnet101(pretrained=False):
     pretrained (bool): If True, returns a model pre-trained on ImageNet
   """
   model = ResNet(Bottleneck, [3, 4, 23, 3]) # Here we initialise the ResNet class with the Bottleneck structure as the lower level block. The list used as a parameter contains the number of layers which need to be constructed in the ResNet architecture.
+  if pretrained:
+    model.load_state_dict(model_zoo.load_url(model_urls['resnet101']))
+  return model
+  
+def resnet101_depth_path(pretrained=False):
+  """Constructs a ResNet-101 model.
+  Args:
+    pretrained (bool): If True, returns a model pre-trained on ImageNet
+  """
+  model = ResNet_Depth_Path(Bottleneck, [3, 4, 23, 3]) # Here we initialise the ResNet class with the Bottleneck structure as the lower level block. The list used as a parameter contains the number of layers which need to be constructed in the ResNet architecture.
   if pretrained:
     model.load_state_dict(model_zoo.load_url(model_urls['resnet101']))
   return model
@@ -425,29 +403,31 @@ class resnet(_fasterRCNN): # The _fasterRCNN is basically means that resnet clas
 
   def _init_modules(self):
     resnet = resnet101() # Initialise the proper ResNet architecture
+    resnet_d_p = resnet101()
+    
     
     if self.pretrained == True:
       print("Loading pretrained weights from %s" %(self.model_path))
       state_dict = torch.load(self.model_path)
       state_dict_rgbd = state_dict
-      if cfg.TRAIN.USE_DEPTH:
-      	rgb = state_dict["conv1.weight"]
-      	d = torch.FloatTensor(64,1,7,7).zero_()
-      	d = rgb[:,0:1,:]
-      	rgbd = torch.cat((rgb,d),1)
-      	state_dict_rgbd["conv1.weight"] = rgbd
       resnet.load_state_dict({k:v for k,v in state_dict_rgbd.items() if k in resnet.state_dict()},strict=False)
+      resnet_d_p.load_state_dict({k:v for k,v in state_dict_rgbd.items() if k in resnet_d_p.state_dict()},strict=False)
+
 
     # Build resnet.
     """
     NOTE: The resnet101() function is used here which uses the Bottleneck and the ResNet class. The resnet101() returns a neural network but the network is never used directly. 
     It is used to create the RCNN_base and RCNN_top which are then used for rest of the computations.
     """
-    self.RCNN_base = nn.Sequential(resnet.conv1_a, resnet.bn_a,resnet.relu_a,
-      resnet.maxpool_a,resnet.layer1_a,resnet.layer2_a,resnet.layer3_a,resnet.conv1_b, resnet.bn_b,resnet.relu_b,
-      resnet.maxpool_b,resnet.layer1_b,resnet.layer2_b,resnet.layer3_b) # Defining the RCNN_base which is later used by the functions in the base class _fasterRCNN
-
-    self.RCNN_top = nn.Sequential(resnet.layer4_a,resnet.layer4_b)  # Defining the RCNN_top which is later used by the functions in the base class _fasterRCNN
+    self.RCNN_base_a = nn.Sequential(resnet.conv1, resnet.bn1,resnet.relu,
+      resnet.maxpool,resnet.layer1,resnet.layer2,resnet.layer3) # Defining the RCNN_base which is later used by the functions in the base class _fasterRCNN
+    
+    self.RCNN_base_b = nn.Sequential(resnet_d_p.conv1, resnet_d_p.bn1,resnet_d_p.relu,
+      resnet_d_p.maxpool,resnet_d_p.layer1,resnet_d_p.layer2,resnet_d_p.layer3) # Defining the RCNN_base which is later used by the functions in the base class _fasterRCNN
+    
+    
+    self.RCNN_top_a = nn.Sequential(resnet.layer4)  # Defining the RCNN_top which is later used by the functions in the base class _fasterRCNN
+    self.RCNN_top_b = nn.Sequential(resnet_d_p.layer4)  # Defining the RCNN_top which is later used by the functions in the base class _fasterRCNN
     
     print("The number of classes in n_classes is: %d" %(self.n_classes))
     
@@ -459,50 +439,58 @@ class resnet(_fasterRCNN): # The _fasterRCNN is basically means that resnet clas
 
     """ Fix blocks """
     # RGB path
-    for p in self.RCNN_base[0].parameters(): p.requires_grad=False
-    for p in self.RCNN_base[1].parameters(): p.requires_grad=False
+    for p in self.RCNN_base_a[0].parameters(): p.requires_grad=False
+    for p in self.RCNN_base_a[1].parameters(): p.requires_grad=False
     # Depth path    
-    for p in self.RCNN_base[7].parameters(): p.requires_grad=False
-    for p in self.RCNN_base[8].parameters(): p.requires_grad=False
+    for p in self.RCNN_base_b[0].parameters(): p.requires_grad=False
+    for p in self.RCNN_base_b[1].parameters(): p.requires_grad=False
 
 
 
     assert (0 <= cfg.RESNET.FIXED_BLOCKS < 4)
     if cfg.RESNET.FIXED_BLOCKS >= 3:
-      for p in self.RCNN_base[6].parameters(): p.requires_grad=False
-      for p in self.RCNN_base[13].parameters(): p.requires_grad=False
+      for p in self.RCNN_base_a[6].parameters(): p.requires_grad=False
+      for p in self.RCNN_base_b[6].parameters(): p.requires_grad=False
     if cfg.RESNET.FIXED_BLOCKS >= 2:
-      for p in self.RCNN_base[5].parameters(): p.requires_grad=False
-      for p in self.RCNN_base[12].parameters(): p.requires_grad=False
+      for p in self.RCNN_base_a[5].parameters(): p.requires_grad=False
+      for p in self.RCNN_base_b[5].parameters(): p.requires_grad=False
     if cfg.RESNET.FIXED_BLOCKS >= 1:
-      for p in self.RCNN_base[4].parameters(): p.requires_grad=False
-      for p in self.RCNN_base[11].parameters(): p.requires_grad=False
+      for p in self.RCNN_base_a[4].parameters(): p.requires_grad=False
+      for p in self.RCNN_base_b[4].parameters(): p.requires_grad=False
 
     def set_bn_fix(m):
       classname = m.__class__.__name__
       if classname.find('BatchNorm') != -1:
         for p in m.parameters(): p.requires_grad=False
 
-    self.RCNN_base.apply(set_bn_fix)
-    self.RCNN_top.apply(set_bn_fix)
+    self.RCNN_base_a.apply(set_bn_fix)
+    self.RCNN_top_a.apply(set_bn_fix)
+    self.RCNN_base_b.apply(set_bn_fix)
+    self.RCNN_top_b.apply(set_bn_fix)
 
   def train(self, mode=True):
     # Override train so that the training mode is set as we want
     nn.Module.train(self, mode)
     if mode:
       # Set fixed blocks to be in eval mode
-      self.RCNN_base.eval()
-      self.RCNN_base[5].train()
-      self.RCNN_base[6].train()
+      self.RCNN_base_a.eval()
+      self.RCNN_base_a[5].train()
+      self.RCNN_base_a[6].train()
+      self.RCNN_base_b.eval()
+      self.RCNN_base_b[5].train()
+      self.RCNN_base_b[6].train()
 
       def set_bn_eval(m):
         classname = m.__class__.__name__
         if classname.find('BatchNorm') != -1:
           m.eval()
 
-      self.RCNN_base.apply(set_bn_eval)
-      self.RCNN_top.apply(set_bn_eval)
+      self.RCNN_base_a.apply(set_bn_eval)
+      self.RCNN_top_a.apply(set_bn_eval)
+      self.RCNN_base_b.apply(set_bn_eval)
+      self.RCNN_top_b.apply(set_bn_eval)
 
   def _head_to_tail(self, pool5):
-    fc7 = self.RCNN_top(pool5).mean(3).mean(2)
-    return fc7
+    fc7 = self.RCNN_top_a(pool5).mean(3).mean(2)
+    fc8 = self.RCNN_top_b(pool5).mean(3).mean(2)    
+    return (fc7 + fc8)

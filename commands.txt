@@ -11,7 +11,7 @@ Training model:
 
 V1 - If you don't want to resume training
 python trainval_net.py --dataset kitti_voc --net res101 --bs 1 --nw 8 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs
-
+python trainval_net_bimodal.py --dataset kitti_voc --net res101 --bs 1 --nw 8 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs
 V2 - If you want to resume training
 python trainval_net.py --dataset kitti_voc --net res101 --bs 1 --nw 8 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --r True 
 
@@ -69,4 +69,121 @@ python3 kitti2pascalvoc.py --kitti kitti_2d --out output
 removed image 6955 from left and right images for depth pyramid
 removed all images from submissions_output folder
 depth images for all training images calculated 
+
+
+
+
+
+
+
+
+
+
+"""
+Temporary Code here:
+"""
+
+
+# This is the higher level implementation of the our resnet101 architecture. Over here we use the Bottleneck class, above, to define the middle layers in the neural network
+class ResNet_Double(nn.Module):
+  def __init__(self, block, layers, num_classes=1000):
+    self.inplanes = 64
+    super(ResNet, self).__init__()
+    
+    
+    """ RGB PATH HERE"""
+    self.conv1_b = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)    
+    self.conv1_a = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    
+    self.bn1_a = nn.BatchNorm2d(64)
+    self.bn1_b = nn.BatchNorm2d(64)
+        
+    self.relu_a = nn.ReLU(inplace=True)
+    self.relu_b = nn.ReLU(inplace=True)
+        
+    self.maxpool_a = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True)
+    self.maxpool_b = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True)
+   
+    self.layer1_a = self._make_layer(block, 64, layers[0])
+    self.layer1_b = self._make_layer(block, 64, layers[0])
+        
+    self.layer2_a = self._make_layer(block, 128, layers[1], stride=2)
+    self.layer2_b = self._make_layer(block, 128, layers[1], stride=2)
+        
+    self.layer3_a = self._make_layer(block, 256, layers[2], stride=2)
+    self.layer3_b = self._make_layer(block, 256, layers[2], stride=2)
+        
+    self.layer4_a = self._make_layer(block, 512, layers[3], stride=2)
+    self.layer4_b = self._make_layer(block, 512, layers[3], stride=2)
+
+    # it is slightly better whereas slower to set stride = 1
+    # self.layer4 = self._make_layer(block, 512, layers[3], stride=1)
+    self.avgpool_a = nn.AvgPool2d(7)
+    self.avgpool_b = nn.AvgPool2d(7)
+        
+    #self.fc_a = nn.Linear(512 * block.expansion, num_classes)
+    self.fc_master = nn.Linear(512 * block.expansion * 2, num_classes)
+
+    for m in self.modules():
+      if isinstance(m, nn.Conv2d):
+        n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+        m.weight.data.normal_(0, math.sqrt(2. / n))
+      elif isinstance(m, nn.BatchNorm2d):
+        m.weight.data.fill_(1)
+        m.bias.data.zero_()
+
+  def _make_layer(self, block, planes, blocks, stride=1):
+    downsample = None
+    if stride != 1 or self.inplanes != planes * block.expansion:
+      downsample = nn.Sequential(
+        nn.Conv2d(self.inplanes, planes * block.expansion,
+              kernel_size=1, stride=stride, bias=False),
+        nn.BatchNorm2d(planes * block.expansion),
+      )
+
+    layers = []
+    layers.append(block(self.inplanes, planes, stride, downsample))
+    self.inplanes = planes * block.expansion
+    for i in range(1, blocks):
+      layers.append(block(self.inplanes, planes))
+
+    return nn.Sequential(*layers)
+
+  def forward(self, x,y):
+    """ RGB PATH HERE"""
+    print("hit here")
+    x = self.conv1_a(x)
+    x = self.bn1_a(x)
+    x = self.relu_a(x)
+    x = self.maxpool_a(x)
+
+    x = self.layer1_a(x)
+    x = self.layer2_a(x)
+    x = self.layer3_a(x)
+    x = self.layer4_a(x)
+
+    x = self.avgpool_a(x)
+    x = x.view(x.size(0), -1)
+    #x = self.fc_a(x)
+    """ DEPTH PATH HERE """
+    y = self.conv1_b(y)
+    y = self.bn1_b(y)
+    y = self.relu_b(y)
+    y = self.maxpool_b(y)
+
+    y = self.layer1_b(y)
+    y = self.layer2_b(y)
+    y = self.layer3_b(y)
+    y = self.layer4_b(y)
+
+    y = self.avgpool_b(y)
+    y = y.view(y.size(0), -1)
+    #y = self.fc_b(y)
+    """ CONCATENATION HERE """
+    concatenated_tensor = torch.cat((x,y),1)
+    output = self.fc_master(concatenated_tensor)
+
+    return output
+
+
 

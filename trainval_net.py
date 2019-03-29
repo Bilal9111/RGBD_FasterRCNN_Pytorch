@@ -204,8 +204,11 @@ if __name__ == '__main__':
   
   
   args.depth = True # Custom 
-  args.if_pretrained = True # Custom 
-
+  args.if_pretrained = True # Custom
+  
+    
+    
+  
   '''
   Setting important variables in the 'args' local variable. Note that here we are storing further information in the 'args' variable.
   This is DB related info
@@ -293,7 +296,7 @@ if __name__ == '__main__':
   """
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
-  cfg.TRAIN.USE_FLIPPED = True
+  cfg.TRAIN.USE_FLIPPED = False
   cfg.USE_GPU_NMS = args.cuda
   cfg.TRAIN.USE_DEPTH = args.depth  
   cfg.TRAIN.IF_PRETRAINED = args.if_pretrained
@@ -318,8 +321,7 @@ if __name__ == '__main__':
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                             sampler=sampler_batch, num_workers=args.num_workers)		# the main variable used to store the dataset in batch groups and to cycle through the batches
                             
-                            
-                            
+  
                             
                           
        
@@ -356,6 +358,11 @@ if __name__ == '__main__':
   im_info = Variable(im_info)
   num_boxes = Variable(num_boxes)
   gt_boxes = Variable(gt_boxes)
+  
+  
+  
+
+      	
 
   if args.cuda:
     cfg.CUDA = True
@@ -508,13 +515,16 @@ if __name__ == '__main__':
         lr *= args.lr_decay_gamma
 
     data_iter = iter(dataloader)
+    
     for step in range(iters_per_epoch):
       data = next(data_iter)	# Loading the next batch of data to be used in training
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
       gt_boxes.data.resize_(data[2].size()).copy_(data[2])
       num_boxes.data.resize_(data[3].size()).copy_(data[3])
+      
 
+      	
       fasterRCNN.zero_grad()
       rois, cls_prob, bbox_pred, \
       rpn_loss_cls, rpn_loss_box, \

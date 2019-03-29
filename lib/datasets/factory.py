@@ -16,8 +16,9 @@ from datasets.pascal_voc import pascal_voc
 from datasets.imagenet import imagenet
 from datasets.vg import vg
 from datasets.kittivoc import kittivoc
-import numpy as np
+from datasets.kittivoc_depth import kittivoc_depth
 
+import numpy as np
 
 # Set up voc_<year>_<split>
 for year in ['2007', '2012']:
@@ -61,11 +62,20 @@ for split in ['train', 'val', 'val1', 'val2', 'test']:
     __sets[name] = (lambda split=split, devkit_path=devkit_path, data_path=data_path: imagenet(split,devkit_path,data_path))
 
 
+
+
 # Set up kittivoc
 for split in ['train', 'val', 'trainval', 'test']:
     name = 'kitti_voc_{}'.format(split)
     __sets[name] = (lambda split=split: kittivoc(split))
-     
+
+
+# Set up the kittivoc_depth     
+for split in ['train', 'val', 'trainval', 'test']:
+    name = 'kitti_voc_{}_depth'.format(split)
+    __sets[name] = (lambda split=split: kittivoc_depth(split))
+
+
 
 def get_imdb(name):
   """Get an imdb (image database) by name."""

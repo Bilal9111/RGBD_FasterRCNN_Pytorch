@@ -167,7 +167,7 @@ class BasicBlock(nn.Module):
 
 
 
-# This is basicallly just a neural network module used as a lower level block in our neural network design
+# This is basically just a neural network module used as a lower level block in our neural network design
 class Bottleneck(nn.Module):
   expansion = 4
 
@@ -272,7 +272,8 @@ class ResNet(nn.Module):
     x = self.bn1(x)
     x = self.relu(x)
     x = self.maxpool(x)
-
+    print("#"*100)
+    print("this was hit")
     x = self.layer1(x)
     x = self.layer2(x)
     x = self.layer3(x)
@@ -281,7 +282,6 @@ class ResNet(nn.Module):
     x = self.avgpool(x)
     x = x.view(x.size(0), -1)
     x = self.fc(x)
-
     return x
 
 
@@ -383,7 +383,10 @@ def resnet152(pretrained=False):
 
 # This is the main class which makes everything happen
 class resnet(_fasterRCNN): # The _fasterRCNN is basically means that resnet class is a derived class which uses _fasterRCNN as a base class
+   
   def __init__(self, classes, num_layers=101, pretrained=False, class_agnostic=False):
+    print("Resnet started")
+    print("#"*200)     
     self.model_path = 'data/pretrained_model/resnet101_caffe.pth'
     self.dout_base_model = 1024
     self.pretrained = pretrained
