@@ -402,8 +402,8 @@ class resnet(_fasterRCNN): # The _fasterRCNN is basically means that resnet clas
     _fasterRCNN.__init__(self, classes, class_agnostic) # Initialising the base class here
 
   def _init_modules(self):
-    resnet = resnet101() # Initialise the proper ResNet architecture
-    resnet_d_p = resnet101()
+    resnet = resnet50() # Initialise the proper ResNet architecture
+    resnet_d_p = resnet50()
     
     
     if self.pretrained == True:
@@ -421,7 +421,8 @@ class resnet(_fasterRCNN): # The _fasterRCNN is basically means that resnet clas
     """
     self.RCNN_base_a = nn.Sequential(resnet.conv1, resnet.bn1,resnet.relu,
       resnet.maxpool,resnet.layer1,resnet.layer2,resnet.layer3) # Defining the RCNN_base which is later used by the functions in the base class _fasterRCNN
-    
+    self.RCNN_base_a_mod = [resnet.conv1, resnet.bn1,resnet.relu,resnet.maxpool,resnet.layer1,resnet.layer2,resnet.layer3]
+        
     self.RCNN_base_b = nn.Sequential(resnet_d_p.conv1, resnet_d_p.bn1,resnet_d_p.relu,
       resnet_d_p.maxpool,resnet_d_p.layer1,resnet_d_p.layer2,resnet_d_p.layer3) # Defining the RCNN_base which is later used by the functions in the base class _fasterRCNN
     
@@ -436,7 +437,16 @@ class resnet(_fasterRCNN): # The _fasterRCNN is basically means that resnet clas
       self.RCNN_bbox_pred = nn.Linear(2048, 4) # not to be changed
     else:
       self.RCNN_bbox_pred = nn.Linear(2048, 4 * self.n_classes) # not to be changed
-
+    self.RCNN_mux = nn.Conv2d(2048, 2048, kernel_size=3, stride=1, # change
+                 padding=1, bias=False)
+    
+    
+    
+    
+    
+    
+    
+    
     """ Fix blocks """
     # RGB path
     for p in self.RCNN_base_a[0].parameters(): p.requires_grad=False
@@ -490,7 +500,9 @@ class resnet(_fasterRCNN): # The _fasterRCNN is basically means that resnet clas
       self.RCNN_base_b.apply(set_bn_eval)
       self.RCNN_top_b.apply(set_bn_eval)
 
-  def _head_to_tail(self, pool5):
-    fc7 = self.RCNN_top_a(pool5).mean(3).mean(2)
-    fc8 = self.RCNN_top_b(pool5).mean(3).mean(2)    
-    return (fc7 + fc8)/2
+  def _head_to_tail(self, pool5,pool6):
+    fc7 = self.RCNN_top_a(pool5)
+    fc8 = self.RCNN_top_b(pool6)
+    fc_master = (fc7+fc8).mean(3).mean(2)    
+    #fc_master = torch.cat((fc7,fc8),0).mean(3).mean(2)
+    return fc_master 

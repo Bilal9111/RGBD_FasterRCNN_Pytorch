@@ -61,11 +61,6 @@ class _fasterRCNN(nn.Module):
 
     def forward(self, im_data_a, im_info_a, gt_boxes_a, num_boxes_a, im_data_b, im_info_b, gt_boxes_b, num_boxes_b):
 
-        #print(torch.equal(im_info_a,im_info_b))
-        #print(torch.equal(gt_boxes_a,gt_boxes_b))
-        #print(torch.equal(num_boxes_a,num_boxes_b))
-        #print(im_data_a.size(0))
-        #print(im_data_b.size(0))
         
         # Main here
         batch_size = im_data_a.size(0)
@@ -77,29 +72,31 @@ class _fasterRCNN(nn.Module):
 
         """ feed image data to base model to obtain base feature map """
         
-        #base_feat_a = self.RCNN_base_a(im_data_a) # feeding the data in the RCNN_base to get the feature maps
+        # feeding the data in the RCNN_base_a to get the rgb feature maps
         x = self.RCNN_base_a_mod[0](im_data_a)
         x = self.RCNN_base_a_mod[1](x)
         x = self.RCNN_base_a_mod[2](x)
         x = self.RCNN_base_a_mod[3](x)
-        x = self.RCNN_base_a_mod[4](x)
-        x = self.RCNN_base_a_mod[5](x) # layer 2
-        x = torch.cat((x,x),1)
-        base_feat_a = self.RCNN_base_a_mod[6](x)      
+        x = self.RCNN_base_a_mod[4](x) # layer 1
+        base_feat_a = self.RCNN_base_a_mod[5](x) # layer 2      
         
         
-        #base_feat_b = self.RCNN_base_b(im_data_b) # feeding the data in the RCNN_base to get the feature maps
-             
-        #base_feat = base_feat_a # torch.cat((base_feat_a,base_feat_b),1)         
+        # feeding the data in the RCNN_base_b to get the depth feature maps
+        x = self.RCNN_base_b_mod[0](im_data_b)
+        x = self.RCNN_base_b_mod[1](x)
+        x = self.RCNN_base_b_mod[2](x)
+        x = self.RCNN_base_b_mod[3](x)
+        x = self.RCNN_base_b_mod[4](x) # layer 1
+        base_feat_b = self.RCNN_base_b_mod[5](x) # layer 2                   
+        
+        base_feat = base_feat_a + base_feat_b#torch.cat((base_feat_a,base_feat_b),1) # concatenation of layer 2 outputs         
+        
+        base_feat = self.RCNN_base_a_mod[6](base_feat) # layer 3
+        
         
         """ feed base feature map tp RPN to obtain rois """
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes) # feeding the the feature maps created and the rest of image info to rpn to get the PRREDICTED rois
 
-        print(rois.shape)
-        print(rpn_loss_cls.shape)
-        print(rpn_loss_bbox.shape)
-        print(self.RCNN_base_a.children())
-        exit()
 
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
@@ -124,7 +121,7 @@ class _fasterRCNN(nn.Module):
         
         
         
-        
+        base_feat_a = base_feat
         
         
         
@@ -136,22 +133,23 @@ class _fasterRCNN(nn.Module):
             grid_yx_a = torch.stack([grid_xy_a.data[:,:,:,1], grid_xy_a.data[:,:,:,0]], 3).contiguous()
             pooled_feat_a = self.RCNN_roi_crop(base_feat_a, Variable(grid_yx_a).detach())
             
-            grid_xy_b = _affine_grid_gen(rois.view(-1, 5), base_feat_b.size()[2:], self.grid_size)
-            grid_yx_b = torch.stack([grid_xy_b.data[:,:,:,1], grid_xy_b.data[:,:,:,0]], 3).contiguous()
-            pooled_feat_b = self.RCNN_roi_crop(base_feat_b, Variable(grid_yx_b).detach())
+            #grid_xy_b = _affine_grid_gen(rois.view(-1, 5), base_feat_b.size()[2:], self.grid_size)
+            #grid_yx_b = torch.stack([grid_xy_b.data[:,:,:,1], grid_xy_b.data[:,:,:,0]], 3).contiguous()
+            #pooled_feat_b = self.RCNN_roi_crop(base_feat_b, Variable(grid_yx_b).detach())
             
             if cfg.CROP_RESIZE_WITH_MAX_POOL:
                 pooled_feat_a = F.max_pool2d(pooled_feat_a, 2, 2)
-                pooled_feat_b = F.max_pool2d(pooled_feat_b, 2, 2)
+                #pooled_feat_b = F.max_pool2d(pooled_feat_b, 2, 2)
         elif cfg.POOLING_MODE == 'align':
             pooled_feat_a = self.RCNN_roi_align(base_feat_a, rois.view(-1, 5))
-            pooled_feat_b = self.RCNN_roi_align(base_feat_b, rois.view(-1, 5))
+            #pooled_feat_b = self.RCNN_roi_align(base_feat_b, rois.view(-1, 5))
         elif cfg.POOLING_MODE == 'pool':
             pooled_feat_a = self.RCNN_roi_pool(base_feat_a, rois.view(-1,5))
-            pooled_feat_b = self.RCNN_roi_pool(base_feat_b, rois.view(-1,5))
+            #pooled_feat_b = self.RCNN_roi_pool(base_feat_b, rois.view(-1,5))
 
         # feed pooled features to top model
-        pooled_feat = self._head_to_tail(pooled_feat_a,pooled_feat_b)
+        pooled_feat = self._head_to_tail(pooled_feat_a)
+        #print(pooled_feat.shape)
         
         # compute bbox offset
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)
