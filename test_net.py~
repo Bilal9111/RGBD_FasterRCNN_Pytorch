@@ -140,7 +140,7 @@ if __name__ == '__main__':
   pprint.pprint(cfg)
   
 
-  cfg.TRAIN.USE_DEPTH = False
+  cfg.TRAIN.USE_DEPTH = True
   cfg.TRAIN.USE_FLIPPED = True
   
   
@@ -176,6 +176,22 @@ if __name__ == '__main__':
   fasterRCNN.load_state_dict(checkpoint['model'])
   if 'pooling_mode' in checkpoint.keys():
     cfg.POOLING_MODE = checkpoint['pooling_mode']
+
+  
+
+
+
+  
+  # Test Output file initialisation stuff here:
+  track_file = open("test_net_output.txt",'a+',0)
+  track_file.write("#"*100)
+  track_file.write("\n Depth: {}, Epoch: {}\n".format(str(cfg.TRAIN.USE_DEPTH),args.checkepoch))
+  track_file.close()
+
+
+
+
+
 
 
   print('load model successfully!')

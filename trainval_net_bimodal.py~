@@ -31,7 +31,7 @@ from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.utils.net_utils import weights_normal_init, save_net, load_net, adjust_learning_rate, save_checkpoint, clip_gradient
 
 from model.faster_rcnn.vgg16 import vgg16
-from model.faster_rcnn.resnet_bimodal import resnet
+from model.faster_rcnn.resnet_bimodal_merge import resnet
 import datetime
 
 
@@ -57,7 +57,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--epochs', dest='max_epochs',
                       help='number of epochs to train',
-                      default=15, type=int)
+                      default=20, type=int)
   parser.add_argument('--disp_interval', dest='disp_interval', # this is the just visual stuff here
                       help='number of iterations to display',
                       default=100, type=int)
@@ -152,17 +152,14 @@ class sampler(Sampler):
     if train_size % batch_size:
       self.leftover = torch.arange(self.num_per_batch*batch_size, train_size).long()
       self.leftover_flag = True
-
-  def __iter__(self):
     rand_num = torch.randperm(self.num_per_batch).view(-1,1) * self.batch_size
     self.rand_num = rand_num.expand(self.num_per_batch, self.batch_size) + self.range
-
     self.rand_num_view = self.rand_num.view(-1)
-
     if self.leftover_flag:
-      self.rand_num_view = torch.cat((self.rand_num_view, self.leftover),0)
-
-    return iter(self.rand_num_view)
+    	self.rand_num_view = torch.cat((self.rand_num_view, self.leftover),0)
+  def __iter__(self):
+  	 #print("\n iter executing")
+  	 return iter(self.rand_num_view)
 
   def __len__(self):
     return self.num_data
@@ -323,7 +320,7 @@ if __name__ == '__main__':
   dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
                            imdb.num_classes, training=True)
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            sampler=sampler_batch, num_workers=args.num_workers)		# the main variable used to store the dataset in batch groups and to cycle through the batches
+                            sampler=sampler_batch, num_workers=args.num_workers,shuffle=False)		# the main variable used to store the dataset in batch groups and to cycle through the batches
                             
   
   
@@ -332,25 +329,14 @@ if __name__ == '__main__':
   train_size_depth = len(roidb_depth)
   print('{:d} roidb_depth entries'.format(len(roidb_depth)))
   track_file.write('{} roidb_depth entries\n'.format(len(roidb_depth)))
-  sampler_batch_depth = sampler(train_size_depth, args.batch_size) 
+  #sampler_batch_depth = sampler(train_size_depth, args.batch_size) 
   dataset_depth = roibatchLoader(roidb_depth, ratio_list_depth, ratio_index_depth, args.batch_size, \
                            imdb.num_classes, training=True)
   dataloader_depth = torch.utils.data.DataLoader(dataset_depth, batch_size=args.batch_size,
-                            sampler=sampler_batch_depth, num_workers=args.num_workers)		# the main variable used to store the dataset in batch groups and to cycle through the batches
+                            sampler=sampler_batch, num_workers=args.num_workers,shuffle=False)		# the main variable used to store the dataset in batch groups and to cycle through the batches
      
                              
-                            
-  
 
-
-
-
-
-
-
-       
-       
-       
        
   """
 	Some CUDA stuff here
@@ -441,7 +427,7 @@ if __name__ == '__main__':
   elif args.net == 'res101':
     fasterRCNN = resnet(imdb.classes, 101, pretrained=args.if_pretrained, class_agnostic=args.class_agnostic)
   elif args.net == 'res50':
-    fasterRCNN = resnet(imdb.classes, 50, pretrained=args.if_pretrained, class_agnostic=args.class_agnostic)
+    fasterRCNN = resnet(imdb.classes, 50, pretrained=args.if_pretrained, class_agnostic=args.class_agnostic)  
   elif args.net == 'res152':
     fasterRCNN = resnet(imdb.classes, 152, pretrained=args.if_pretrained, class_agnostic=args.class_agnostic)
   else:

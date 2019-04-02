@@ -140,7 +140,7 @@ if __name__ == '__main__':
   pprint.pprint(cfg)
   
 
-  cfg.TRAIN.USE_DEPTH = True
+  cfg.TRAIN.USE_DEPTH = False
   cfg.TRAIN.USE_FLIPPED = True
   
   

@@ -10,17 +10,17 @@ set LEARNING_RATE=0.001
 Training model:
 
 V1 - If you don't want to resume training
-python trainval_net.py --dataset kitti_voc --net res101 --bs 1 --nw 8 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs
-python trainval_net_bimodal.py --dataset kitti_voc --net res101 --bs 1 --nw 8 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs
+python trainval_net.py --dataset kitti_voc --net res50 --bs 1 --nw 0 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs
+python trainval_net_bimodal.py --dataset kitti_voc --net res50 --bs 1 --nw 0 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs
 V2 - If you want to resume training
-python trainval_net.py --dataset kitti_voc --net res101 --bs 1 --nw 8 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --r True 
+python trainval_net_bimodal.py --dataset kitti_voc --net res50 --bs 1 --nw 0 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --r True 
 
 
 
 Testing model:
 
 python test_net.py --dataset kitti_voc --net res101 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
-
+python test_net_bimodal.py --dataset kitti_voc --net res50 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
 
 
 Demo:
@@ -50,7 +50,11 @@ Done	make 4-channel object detection work with caffe weights
 		use ALL the training data provided in the KITTI 2D
 		use advanced depth estimation
 		
-		
+Path command:
+cd /
+cd /media/xtbk56/fdaf1df4-9925-ed43-b7bf-21085605f94d/RGBD_FasterRCNN_Pytorch
+clear
+
 Track:
 
 
