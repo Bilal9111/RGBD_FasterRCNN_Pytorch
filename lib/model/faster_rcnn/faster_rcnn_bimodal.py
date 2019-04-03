@@ -77,7 +77,8 @@ class _fasterRCNN(nn.Module):
 
         """ feed image data to base model to obtain base feature map """
         
-        #base_feat_a = self.RCNN_base_a(im_data_a) # feeding the data in the RCNN_base to get the feature maps
+        base_feat_a = self.RCNN_base_a(im_data_a) # feeding the data in the RCNN_base to get the feature maps
+        """        
         x = self.RCNN_base_a_mod[0](im_data_a)
         x = self.RCNN_base_a_mod[1](x)
         x = self.RCNN_base_a_mod[2](x)
@@ -86,20 +87,16 @@ class _fasterRCNN(nn.Module):
         x = self.RCNN_base_a_mod[5](x) # layer 2
         x = torch.cat((x,x),1)
         base_feat_a = self.RCNN_base_a_mod[6](x)      
+        """
         
-        
-        #base_feat_b = self.RCNN_base_b(im_data_b) # feeding the data in the RCNN_base to get the feature maps
+        base_feat_b = self.RCNN_base_b(im_data_b) # feeding the data in the RCNN_base to get the feature maps
              
-        #base_feat = base_feat_a # torch.cat((base_feat_a,base_feat_b),1)         
+        base_feat = base_feat_a # torch.cat((base_feat_a,base_feat_b),1)         
         
         """ feed base feature map tp RPN to obtain rois """
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes) # feeding the the feature maps created and the rest of image info to rpn to get the PRREDICTED rois
 
-        print(rois.shape)
-        print(rpn_loss_cls.shape)
-        print(rpn_loss_bbox.shape)
-        print(self.RCNN_base_a.children())
-        exit()
+       
 
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
@@ -150,11 +147,38 @@ class _fasterRCNN(nn.Module):
             pooled_feat_a = self.RCNN_roi_pool(base_feat_a, rois.view(-1,5))
             pooled_feat_b = self.RCNN_roi_pool(base_feat_b, rois.view(-1,5))
 
+        
+        
+        
         # feed pooled features to top model
+        #print("testing starts")
+        #print(pooled_feat_a.shape)
+        #print(pooled_feat_b.shape)
         pooled_feat = self._head_to_tail(pooled_feat_a,pooled_feat_b)
+        #print(pooled_feat.shape)
+        
+        pooled_feat = self.fc_downsample_1(pooled_feat)
+        pooled_feat = F.relu(pooled_feat)
+        #pooled_feat = self.fc_downsample_2(pooled_feat)
+        #pooled_feat = F.relu(pooled_feat)
+        #pooled_feat = self.fc_downsample_3(pooled_feat)
+        #pooled_feat = F.relu(pooled_feat)
+        #pooled_feat = self.fc_downsample_4(pooled_feat)
+        #pooled_feat = F.relu(pooled_feat)
+        #pooled_feat = self.fc_downsample_5(pooled_feat)
+        #pooled_feat = F.relu(pooled_feat)
+        pooled_feat = self.fc_downsample_6(pooled_feat)
+        pooled_feat = F.relu(pooled_feat)
+        
+        
+
+
         
         # compute bbox offset
-        bbox_pred = self.RCNN_bbox_pred(pooled_feat)
+        bbox_pred = self.RCNN_bbox_pred(pooled_feat)        
+        #print(bbox_pred.shape)
+        
+        
         if self.training and not self.class_agnostic:            
             # select the corresponding columns according to roi labels
             bbox_pred_view = bbox_pred.view(bbox_pred.size(0), int(bbox_pred.size(1) / 4), 4)
@@ -220,7 +244,13 @@ class _fasterRCNN(nn.Module):
         normal_init(self.RCNN_rpn.RPN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_rpn.RPN_bbox_pred, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
-        normal_init(self.RCNN_bbox_pred, 0, 0.001, cfg.TRAIN.TRUNCATED)
+        normal_init(self.RCNN_bbox_pred, 0, 0.001, cfg.TRAIN.TRUNCATED)        
+        normal_init(self.fc_downsample_1, 0, 0.001, cfg.TRAIN.TRUNCATED)       
+        #normal_init(self.fc_downsample_2, 0, 0.001, cfg.TRAIN.TRUNCATED)       
+        #normal_init(self.fc_downsample_3, 0, 0.001, cfg.TRAIN.TRUNCATED)       
+        #normal_init(self.fc_downsample_4, 0, 0.001, cfg.TRAIN.TRUNCATED)       
+        #normal_init(self.fc_downsample_5, 0, 0.001, cfg.TRAIN.TRUNCATED)       
+        normal_init(self.fc_downsample_6, 0, 0.001, cfg.TRAIN.TRUNCATED)
 
     def create_architecture(self): # This may not need to change too
         self._init_modules() # predefined function in nn.Module file

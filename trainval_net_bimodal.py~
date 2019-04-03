@@ -31,7 +31,7 @@ from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.utils.net_utils import weights_normal_init, save_net, load_net, adjust_learning_rate, save_checkpoint, clip_gradient
 
 from model.faster_rcnn.vgg16 import vgg16
-from model.faster_rcnn.resnet_bimodal_merge import resnet
+from model.faster_rcnn.resnet_bimodal import resnet
 import datetime
 
 
@@ -201,7 +201,7 @@ if __name__ == '__main__':
   
   
   args.depth = False # Custom 
-  args.if_pretrained = False # Custom
+  args.if_pretrained = True # Custom
   args.if_bimodal = True # Custom
   
   if args.depth == True and args.if_bimodal == True:
@@ -485,7 +485,7 @@ if __name__ == '__main__':
     args.start_epoch = checkpoint['epoch']
     fasterRCNN.load_state_dict(checkpoint['model']) # Note that this was already initialized in resnet101.py or vgg16.py. The model is being overwritten here
     optimizer.load_state_dict(checkpoint['optimizer']) # optimizer is being overwritten too
-    lr = optimizer.param_groups[0]['lr']
+    #lr = optimizer.param_groups[0]['lr']
     if 'pooling_mode' in checkpoint.keys():
       cfg.POOLING_MODE = checkpoint['pooling_mode']
     print("loaded checkpoint %s" % (load_name))
@@ -537,7 +537,7 @@ if __name__ == '__main__':
 
     data_iter = iter(dataloader)
     data_iter_depth = iter(dataloader_depth) # Custom
-    
+    losses = []
     for step in range(iters_per_epoch):
       data = next(data_iter)	# Loading the next batch of data to be used in training
       im_data.data.resize_(data[0].size()).copy_(data[0])
@@ -587,6 +587,8 @@ if __name__ == '__main__':
           loss_rcnn_box = RCNN_loss_bbox.item()
           fg_cnt = torch.sum(rois_label.data.ne(0))
           bg_cnt = rois_label.data.numel() - fg_cnt
+        
+        losses.append(loss_temp)
 
         print("[session %d][epoch %2d][iter %4d/%4d] loss: %.4f, lr: %.2e" \
                                 % (args.session, epoch, step, iters_per_epoch, loss_temp, lr))
@@ -620,7 +622,12 @@ if __name__ == '__main__':
       'pooling_mode': cfg.POOLING_MODE,
       'class_agnostic': args.class_agnostic,
     }, save_name)
+    
+    average_loss = sum(losses)/len(losses)
+    print()
+    print("Average_loss: {}".format(average_loss)
     print('save model: {}'.format(save_name)) # this is executed after every epoch. The model is stored after every epoch
+    print()
     track_file.write('save model: {}\n\n'.format(save_name))
   if args.use_tfboard:		 # Some exception occurs here
     logger.close()

@@ -1,0 +1,6 @@
+# IDEA Ignores #
+################
+out/
+data/
+models/
+images/

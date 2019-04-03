@@ -179,7 +179,6 @@ class ResNet(nn.Module):
      
     self.layer1 = self._make_layer(block, 64, layers[0])
     self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
-    self.inplanes = self.inplanes*2
     self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
     self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
     
@@ -433,17 +432,17 @@ class resnet(_fasterRCNN): # The _fasterRCNN is basically means that resnet clas
     
     print("The number of classes in n_classes is: %d" %(self.n_classes))
     
-    self.RCNN_cls_score = nn.Linear(2048, self.n_classes) # not to be changed
+    self.RCNN_cls_score = nn.Linear(64, self.n_classes) # not to be changed
     if self.class_agnostic:
-      self.RCNN_bbox_pred = nn.Linear(2048, 4) # not to be changed
+      self.RCNN_bbox_pred = nn.Linear(64, 4) # not to be changed
     else:
-      self.RCNN_bbox_pred = nn.Linear(2048, 4 * self.n_classes) # not to be changed
-    self.RCNN_mux = nn.Conv2d(2048, 2048, kernel_size=3, stride=1, # change
-                 padding=1, bias=False)
+      self.RCNN_bbox_pred = nn.Linear(64, 4 * self.n_classes) # not to be changed
     
     
     
-    
+    self.fc_downsample_1 = nn.Linear(4096, 256)
+    #self.fc_downsample_3 = nn.Linear(1024, 256)
+    self.fc_downsample_6 = nn.Linear(256, 64)
     
     
     
@@ -504,6 +503,6 @@ class resnet(_fasterRCNN): # The _fasterRCNN is basically means that resnet clas
   def _head_to_tail(self, pool5,pool6):
     fc7 = self.RCNN_top_a(pool5)
     fc8 = self.RCNN_top_b(pool6)
-    fc_master = (fc7+fc8).mean(3).mean(2)    
-    #fc_master = torch.cat((fc7,fc8),0).mean(3).mean(2)
+    #fc_master = (fc7+fc8).mean(3).mean(2)    
+    fc_master = torch.cat((fc7,fc8),2).mean(3).mean(2)
     return fc_master 
