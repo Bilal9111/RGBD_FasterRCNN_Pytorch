@@ -31,7 +31,7 @@ from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.utils.net_utils import weights_normal_init, save_net, load_net, adjust_learning_rate, save_checkpoint, clip_gradient
 
 from model.faster_rcnn.vgg16 import vgg16
-from model.faster_rcnn.resnet_bimodal import resnet
+from model.faster_rcnn.resnet_bimodal_early import resnet
 import datetime
 
 
@@ -628,7 +628,9 @@ if __name__ == '__main__':
     print("Average_loss: {}".format(average_loss))
     print('save model: {}'.format(save_name)) # this is executed after every epoch. The model is stored after every epoch
     print()
-    track_file.write('save model: {}\n\n'.format(save_name))
+    track_file.write('save model: {}'.format(save_name))    
+    track_file.write('Average Loss: {}\n\n'.format(average_loss))
+    
   if args.use_tfboard:		 # Some exception occurs here
     logger.close()
   track_file.close()

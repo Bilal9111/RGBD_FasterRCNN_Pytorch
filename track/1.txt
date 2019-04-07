@@ -18450,3 +18450,51 @@ res50, kitti_voc_trainval, 1
 			fg/bg=(7/249), time cost: 51.1723492146
 			rpn_cls: 0.667818546295, rpn_box: 0.282321721315, rcnn_cls: 0.155127540231, rcnn_box 0.000406946812291
 
+[session 1][epoch 1][iter 200/1133] loss: 0.689474365499, lr: 0.001, time: 21:16:43.630657
+			fg/bg=(3/253), time cost: 51.7990629673
+			rpn_cls: 0.357841640711, rpn_box: 0.0225871372968, rcnn_cls: 0.0566243864596, rcnn_box 0.000474630651297
+
+[session 1][epoch 1][iter 300/1133] loss: 0.645557452842, lr: 0.001, time: 21:17:36.164904
+			fg/bg=(17/239), time cost: 52.213121891
+			rpn_cls: 0.554261922836, rpn_box: 0.24564422667, rcnn_cls: 0.264761030674, rcnn_box 0.0786545872688
+
+[session 1][epoch 1][iter 400/1133] loss: 0.652632090272, lr: 0.001, time: 21:18:29.805666
+			fg/bg=(4/252), time cost: 53.3172950745
+			rpn_cls: 0.338056862354, rpn_box: 0.131245464087, rcnn_cls: 0.132175549865, rcnn_box 8.02557406132e-05
+
+[session 1][epoch 1][iter 500/1133] loss: 0.65364327953, lr: 0.001, time: 21:19:23.551022
+			fg/bg=(16/240), time cost: 53.4236860275
+			rpn_cls: 0.567710161209, rpn_box: 0.166964620352, rcnn_cls: 0.209554806352, rcnn_box 0.0751107111573
+
+[session 1][epoch 1][iter 600/1133] loss: 0.63736179589, lr: 0.001, time: 21:20:17.455014
+			fg/bg=(4/252), time cost: 53.5853290558
+			rpn_cls: 0.36360040307, rpn_box: 0.0477949343622, rcnn_cls: 0.0895923152566, rcnn_box 0.0170699153095
+
+[session 1][epoch 1][iter 700/1133] loss: 0.668374380115, lr: 0.001, time: 21:21:11.306585
+			fg/bg=(25/231), time cost: 53.5213210583
+			rpn_cls: 0.881276130676, rpn_box: 0.349189162254, rcnn_cls: 0.335005670786, rcnn_box 0.11029817909
+
+[session 1][epoch 1][iter 800/1133] loss: 0.675148097595, lr: 0.001, time: 21:22:05.994828
+			fg/bg=(2/254), time cost: 54.3588798046
+			rpn_cls: 0.328655481339, rpn_box: 0.211489230394, rcnn_cls: 0.0604234412313, rcnn_box 3.79904013244e-05
+
+[session 1][epoch 1][iter 900/1133] loss: 0.624438248353, lr: 0.001, time: 21:22:59.968730
+			fg/bg=(1/255), time cost: 53.6512389183
+			rpn_cls: 0.188558101654, rpn_box: 0.0182446744293, rcnn_cls: 0.0279913190752, rcnn_box 0.000282072083792
+
+[session 1][epoch 1][iter 1000/1133] loss: 0.671448587929, lr: 0.001, time: 21:23:56.915245
+			fg/bg=(4/252), time cost: 56.6119520664
+			rpn_cls: 0.11091979593, rpn_box: 0.00199682591483, rcnn_cls: 0.117342501879, rcnn_box 0.0263874009252
+
+[session 1][epoch 1][iter 1100/1133] loss: 0.610575664752, lr: 0.001, time: 21:24:51.293179
+			fg/bg=(8/248), time cost: 53.9611301422
+			rpn_cls: 0.307865470648, rpn_box: 0.0536817386746, rcnn_cls: 0.158139243722, rcnn_box 0.0405562631786
+
+save model: models/kitti_voc_dual_paths/kitti_voc/faster_rcnn_1_1_1132.pth
+
+[session 1][epoch 2][iter 0/1133] loss: 0.816802501678, lr: 0.001, time: 21:25:09.932672
+			fg/bg=(11/245), time cost: 0.240196943283
+			rpn_cls: 0.408051431179, rpn_box: 0.167049854994, rcnn_cls: 0.180873006582, rcnn_box 0.060828179121
+
+1133 roidb entries
+1133 roidb_depth entries

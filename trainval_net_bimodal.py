@@ -628,7 +628,9 @@ if __name__ == '__main__':
     print("Average_loss: {}".format(average_loss))
     print('save model: {}'.format(save_name)) # this is executed after every epoch. The model is stored after every epoch
     print()
-    track_file.write('save model: {}\n\n'.format(save_name))
+    track_file.write('save model: {}'.format(save_name))    
+    track_file.write('Average Loss: {}\n\n'.format(average_loss))
+    
   if args.use_tfboard:		 # Some exception occurs here
     logger.close()
   track_file.close()
