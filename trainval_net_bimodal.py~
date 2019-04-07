@@ -57,7 +57,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--epochs', dest='max_epochs',
                       help='number of epochs to train',
-                      default=20, type=int)
+                      default=40, type=int)
   parser.add_argument('--disp_interval', dest='disp_interval', # this is the just visual stuff here
                       help='number of iterations to display',
                       default=100, type=int)
@@ -108,7 +108,7 @@ def parse_args():
                       default=5, type=int)
   parser.add_argument('--lr_decay_gamma', dest='lr_decay_gamma',
                       help='learning rate decay ratio',
-                      default=0.1, type=float)
+                      default=0.5, type=float)
 
 # set training session
   parser.add_argument('--s', dest='session',        ######
@@ -625,7 +625,7 @@ if __name__ == '__main__':
     
     average_loss = sum(losses)/len(losses)
     print()
-    print("Average_loss: {}".format(average_loss)
+    print("Average_loss: {}".format(average_loss))
     print('save model: {}'.format(save_name)) # this is executed after every epoch. The model is stored after every epoch
     print()
     track_file.write('save model: {}\n\n'.format(save_name))

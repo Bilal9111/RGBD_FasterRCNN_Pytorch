@@ -21,7 +21,7 @@ def im_list_to_blob(ims):
                     dtype=np.float32)
     for i in xrange(num_images):
         im = ims[i]
-        blob[i, 0:im.shape[0], 0:im.shape[1], 0:im.shape[2], :] = im
+        blob[i, 0:im.shape[0], 0:im.shape[1], :] = im
 
     return blob
 

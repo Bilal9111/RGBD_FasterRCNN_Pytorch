@@ -20,10 +20,9 @@ from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, _affine_gri
 
 
 
-
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
-    def __init__(self, classes, class_agnostic): # This may not need to change (except the inits)
+    def __init__(self, classes, class_agnostic):
         super(_fasterRCNN, self).__init__()
         self.classes = classes
         self.n_classes = len(classes)
@@ -47,35 +46,30 @@ class _fasterRCNN(nn.Module):
 
     def forward(self, im_data_a, im_info_a, gt_boxes_a, num_boxes_a, im_data_b, im_info_b, gt_boxes_b, num_boxes_b):
         
-        # Main here
+        
         batch_size = im_data_a.size(0)
         im_info = im_info_a.data
         gt_boxes = gt_boxes_a.data
         num_boxes = num_boxes_a.data
-           
 
-        """ feed image data to base model to obtain base feature map """
-        # Passing through the first 3 layers for RGB and Depth
-        base_feat_a = self.RCNN_base_a(im_data_a) # feeding the data in the RCNN_base to get the feature maps
-        base_feat_b = self.RCNN_base_b(im_data_b) # feeding the data in the RCNN_base to get the feature maps
-        
-        # Passing the tensors through the 4th layers and adding them element-wise
-        added_features = self._head_to_tail(base_feat_a,base_feat_b)
-        fc = self.upsample1(added_features)
-        
-        # Ready for base feat     
-        base_feat = fc
-        
 
-        """ feed base feature map tp RPN to obtain rois """
-        rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes) # feeding the the feature maps created and the rest of image info to rpn to get the PRREDICTED rois
+        # feed image data to base model to obtain base feature map
+        rgb_feat = self.RCNN_preprocess_a(im_data_a)
+        depth_feat = self.RCNN_preprocess_b(im_data_b)
+        conc_feat = rgb_feat+depth_feat
+        base_feat = self.RCNN_postprocess(conc_feat)
+        
+        
+        
+        # feed base feature map tp RPN to obtain rois
+        rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
 
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
-            roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes) # refining the rois if in training
+            roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws = roi_data
-             
-            rois_label = Variable(rois_label.view(-1).long()) # The predicted roi labels
+
+            rois_label = Variable(rois_label.view(-1).long())
             rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
             rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
             rois_outside_ws = Variable(rois_outside_ws.view(-1, rois_outside_ws.size(2)))
@@ -88,56 +82,33 @@ class _fasterRCNN(nn.Module):
             rpn_loss_bbox = 0
 
         rois = Variable(rois)
-        
+        # do roi pooling based on predicted rois
 
-
-
-
-
-
-        
-        
         if cfg.POOLING_MODE == 'crop':
             # pdb.set_trace()
             # pooled_feat_anchor = _crop_pool_layer(base_feat, rois.view(-1, 5))
-            grid_xy_a = _affine_grid_gen(rois.view(-1, 5), fc.size()[2:], self.grid_size)
-            grid_yx_a = torch.stack([grid_xy_a.data[:,:,:,1], grid_xy_a.data[:,:,:,0]], 3).contiguous()
-            fc = self.RCNN_roi_crop(fc, Variable(grid_yx_a).detach())
-                      
+            grid_xy = _affine_grid_gen(rois.view(-1, 5), base_feat.size()[2:], self.grid_size)
+            grid_yx = torch.stack([grid_xy.data[:,:,:,1], grid_xy.data[:,:,:,0]], 3).contiguous()
+            pooled_feat = self.RCNN_roi_crop(base_feat, Variable(grid_yx).detach())
             if cfg.CROP_RESIZE_WITH_MAX_POOL:
-                fc = F.max_pool2d(fc, 2, 2)
+                pooled_feat = F.max_pool2d(pooled_feat, 2, 2)
         elif cfg.POOLING_MODE == 'align':
-            fc = self.RCNN_roi_align(fc, rois.view(-1, 5))
+            pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
         elif cfg.POOLING_MODE == 'pool':
-            fc = self.RCNN_roi_pool(fc, rois.view(-1,5))
-        
-        
-        
-        
-        
-        
-        
-        
-        fc = self.upsample2(fc)
-        
-        pooled_feat = fc.mean(3).mean(2)
-        pooled_feat = self.fc_layer(pooled_feat)
-        
-        
+            pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1,5))
 
-
+        # feed pooled features to top model
+        pooled_feat = self._head_to_tail(pooled_feat)
         
+              
         # compute bbox offset
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)
-        
-        
-        if self.training and not self.class_agnostic:            
+        if self.training and not self.class_agnostic:       
             # select the corresponding columns according to roi labels
             bbox_pred_view = bbox_pred.view(bbox_pred.size(0), int(bbox_pred.size(1) / 4), 4)
-            rois_label_view = rois_label.view(rois_label.size(0), 1, 1).expand(rois_label.size(0), 1, 4)            
-            bbox_pred_select = torch.gather(bbox_pred_view, 1, rois_label_view)
+            bbox_pred_select = torch.gather(bbox_pred_view, 1, rois_label.view(rois_label.size(0), 1, 1).expand(rois_label.size(0), 1, 4))
             bbox_pred = bbox_pred_select.squeeze(1)
-        
+
         # compute object classification probability
         cls_score = self.RCNN_cls_score(pooled_feat)
         cls_prob = F.softmax(cls_score, 1)
@@ -155,32 +126,10 @@ class _fasterRCNN(nn.Module):
 
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
-        
-        
-
+        #print(cls_prob.shape)
         return rois, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, rois_label
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def _init_weights(self): # This may not need to change
+    def _init_weights(self):
         def normal_init(m, mean, stddev, truncated=False):
             """
             weight initalizer: truncated normal and random normal.
@@ -197,8 +146,7 @@ class _fasterRCNN(nn.Module):
         normal_init(self.RCNN_rpn.RPN_bbox_pred, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_bbox_pred, 0, 0.001, cfg.TRAIN.TRUNCATED)
-        
 
-    def create_architecture(self): # This may not need to change too
-        self._init_modules() # predefined function in nn.Module file
-        self._init_weights() 
+    def create_architecture(self):
+        self._init_modules()
+        self._init_weights()

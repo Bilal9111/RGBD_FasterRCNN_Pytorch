@@ -31,7 +31,7 @@ from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.utils.net_utils import weights_normal_init, save_net, load_net, adjust_learning_rate, save_checkpoint, clip_gradient
 
 from model.faster_rcnn.vgg16 import vgg16
-from model.faster_rcnn.resnet_bimodal import resnet
+from model.faster_rcnn.resnet_bimodal_early import resnet
 import datetime
 
 
@@ -57,7 +57,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--epochs', dest='max_epochs',
                       help='number of epochs to train',
-                      default=20, type=int)
+                      default=40, type=int)
   parser.add_argument('--disp_interval', dest='disp_interval', # this is the just visual stuff here
                       help='number of iterations to display',
                       default=100, type=int)
@@ -108,7 +108,7 @@ def parse_args():
                       default=5, type=int)
   parser.add_argument('--lr_decay_gamma', dest='lr_decay_gamma',
                       help='learning rate decay ratio',
-                      default=0.1, type=float)
+                      default=0.5, type=float)
 
 # set training session
   parser.add_argument('--s', dest='session',        ######

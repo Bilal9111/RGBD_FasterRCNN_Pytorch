@@ -175,7 +175,7 @@ class Bottleneck(nn.Module):
     super(Bottleneck, self).__init__()
     self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, stride=stride, bias=False) # change
     self.bn1 = nn.BatchNorm2d(planes)
-    self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, # change
+    self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=2, # change
                  padding=1, bias=False)
     self.bn2 = nn.BatchNorm2d(planes)
     self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
@@ -420,12 +420,12 @@ class resnet(_fasterRCNN): # The _fasterRCNN is basically means that resnet clas
     self.final_fc = resnet.fc
     print("The number of classes in n_classes is: %d" %(self.n_classes))
     
-    self.RCNN_cls_score = nn.Linear(1000, self.n_classes) # not to be changed
+    self.RCNN_cls_score = nn.Linear(2048, self.n_classes) # not to be changed
     if self.class_agnostic:
       self.RCNN_bbox_pred = nn.Linear(2048, 4) # not to be changed
       print("$"*100)
     else:
-      self.RCNN_bbox_pred = nn.Linear(1000, 4 * self.n_classes) # not to be changed
+      self.RCNN_bbox_pred = nn.Linear(2048, 4 * self.n_classes) # not to be changed
 
     # Fix blocks
     for p in self.RCNN_base[0].parameters(): p.requires_grad=False

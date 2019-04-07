@@ -313,7 +313,7 @@ if __name__ == '__main__':
                             
   dataset_depth = roibatchLoader(roidb_depth, ratio_list_depth, ratio_index_depth, 1, \
                         imdb_depth.num_classes, training=False, normalize = False)
-  dataloader_depth = torch.utils.data.DataLoader(dataset_depth, sampler=sampler_batch, batch_size=1,
+  dataloader_depth = torch.utils.data.DataLoader(dataset_depth, batch_size=1,
                             shuffle=False, num_workers=0,
                             pin_memory=True)
 
@@ -325,6 +325,7 @@ if __name__ == '__main__':
 
   fasterRCNN.eval()
   empty_array = np.transpose(np.array([[],[],[],[],[]]), (1,0))
+  
   for i in range(num_images):
 
       data = next(data_iter)

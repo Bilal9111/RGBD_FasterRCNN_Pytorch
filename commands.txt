@@ -1,17 +1,24 @@
 
 Project Commands
 
-set SESSION=2
-set EPOCH=9
-set CHECKPOINT=5010
-set DECAY_STEP=5
+set SESSION=1
+set EPOCH=27
+set CHECKPOINT=1132
+set DECAY_STEP=40
 set LEARNING_RATE=0.001
 
 Training model:
 
+
+
 V1 - If you don't want to resume training
+
 python trainval_net.py --dataset kitti_voc --net res50 --bs 1 --nw 0 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs
+
 python trainval_net_bimodal.py --dataset kitti_voc --net res50 --bs 1 --nw 0 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs
+
+
+
 V2 - If you want to resume training
 python trainval_net_bimodal.py --dataset kitti_voc --net res50 --bs 1 --nw 0 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP --cuda --mGPUs --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --r True 
 
@@ -19,7 +26,7 @@ python trainval_net_bimodal.py --dataset kitti_voc --net res50 --bs 1 --nw 0 --l
 
 Testing model:
 
-python test_net.py --dataset kitti_voc --net res101 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
+python test_net.py --dataset kitti_voc --net res50 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
 python test_net_bimodal.py --dataset kitti_voc --net res50 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
 
 
@@ -36,8 +43,8 @@ Github commands
 git add .
 git reset -- data/*
 git reset -- models/*
-git commit -m "another commit"
-git push origin master --force
+git commit -m "Another RGBD RESNET merge commit"
+git push origin master
 
 Todo:
 
