@@ -235,6 +235,14 @@ class ResNet_Merge(nn.Module):
   	
 
     super(ResNet_Merge, self).__init__()
+    
+    # Depth pre-processing here:
+    self.inplanes = 64
+    self.b_conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,bias=False)
+    self.b_bn1 = nn.BatchNorm2d(64)
+    self.b_relu = nn.ReLU(inplace=True)
+    self.b_maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True)
+    self.b_layer1 = self._make_layer(block, 64, 1) 
 
 
     # RGB pre-processing here:
@@ -245,13 +253,10 @@ class ResNet_Merge(nn.Module):
     self.a_maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True)
     self.a_layer1 = self._make_layer(block, 64, layers[0]) 
     
-    # Depth pre-processing here:
-    self.inplanes = 64
-    self.b_conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,bias=False)
-    self.b_bn1 = nn.BatchNorm2d(64)
-    self.b_relu = nn.ReLU(inplace=True)
-    self.b_maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True)
-    self.b_layer1 = self._make_layer(block, 64, layers[0]) 
+    
+    
+    # Inplanes adjust after concatenation
+    #self.inplanes = self.inplanes * 2
     
     # Post-processing here: 
     self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
@@ -423,10 +428,14 @@ class resnet(_fasterRCNN):
       for weight_st in self.weight_string:
       	state_dict['a_'+weight_st] = state_dict[weight_st]
       	state_dict['b_'+weight_st] = state_dict[weight_st]
+      
+      depth_conv1_weight = state_dict["b_conv1.weight"]
+      depth_conv1_weight = depth_conv1_weight[:,0:1,:]
+      state_dict["b_conv1.weight"] = depth_conv1_weight
   
       # Initialising weights
       resnet.load_state_dict({k:v for k,v in state_dict.items() if k in resnet.state_dict()},strict=False)
-      state_dict = None
+      
       	
       
 
@@ -438,13 +447,13 @@ class resnet(_fasterRCNN):
     """
     # Preprocess 
     self.RCNN_preprocess_a = nn.Sequential(resnet.a_conv1, resnet.a_bn1,resnet.a_relu,
-      resnet.a_maxpool,resnet.a_layer1)
+      resnet.a_maxpool,resnet.a_layer1[0]) # RGB path Conv5
       
     self.RCNN_preprocess_b = nn.Sequential(resnet.b_conv1, resnet.b_bn1,resnet.b_relu,
-      resnet.b_maxpool,resnet.b_layer1)
+      resnet.b_maxpool,resnet.b_layer1) # Depth path Conv5
     
     # Postprocess
-    self.RCNN_postprocess = nn.Sequential(resnet.layer2,resnet.layer3)
+    self.RCNN_postprocess = nn.Sequential(resnet.a_layer1[1],resnet.a_layer1[4][2],resnet.layer2,resnet.layer3)
      
     # Top layer
     self.RCNN_top = nn.Sequential(resnet.layer4)  # Defining the RCNN_top which is later used by the functions in the base class _fasterRCNN
@@ -466,7 +475,7 @@ class resnet(_fasterRCNN):
     
     
     
-    
+    """
 
     # Fix blocks
     for p in self.RCNN_preprocess_a[0].parameters(): p.requires_grad=False
@@ -494,7 +503,7 @@ class resnet(_fasterRCNN):
     self.RCNN_top.apply(set_bn_fix)
     
 
-
+   """
 
 
 
@@ -506,11 +515,11 @@ class resnet(_fasterRCNN):
     nn.Module.train(self, mode)
     if mode:
       # Set fixed blocks to be in eval mode
-      self.RCNN_preprocess_a.eval()
-      self.RCNN_preprocess_b.eval()
+      self.RCNN_preprocess_a.train()
+      self.RCNN_preprocess_b.train()
       self.RCNN_postprocess.train()
       
-      
+      """
       def set_bn_eval(m):
         classname = m.__class__.__name__
         if classname.find('BatchNorm') != -1:
@@ -520,9 +529,9 @@ class resnet(_fasterRCNN):
       self.RCNN_preprocess_b.apply(set_bn_eval)    
       self.RCNN_postprocess.apply(set_bn_eval)
       self.RCNN_top.apply(set_bn_eval)
-     
+      """
       
       
   def _head_to_tail(self, pool5):
     fc7 = self.RCNN_top(pool5)
-    return fc 
+    return fc7.mean(3).mean(2) 

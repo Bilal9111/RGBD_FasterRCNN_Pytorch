@@ -31,7 +31,7 @@ from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.utils.net_utils import weights_normal_init, save_net, load_net, adjust_learning_rate, save_checkpoint, clip_gradient
 
 from model.faster_rcnn.vgg16 import vgg16
-from model.faster_rcnn.resnet_bimodal_early import resnet
+from model.faster_rcnn.resnet_rgbd_early import resnet
 import datetime
 
 
@@ -57,7 +57,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--epochs', dest='max_epochs',
                       help='number of epochs to train',
-                      default=40, type=int)
+                      default=70, type=int)
   parser.add_argument('--disp_interval', dest='disp_interval', # this is the just visual stuff here
                       help='number of iterations to display',
                       default=100, type=int)
@@ -78,7 +78,7 @@ def parse_args():
                       help='whether use CUDA',
                       action='store_true')
   parser.add_argument('--ls', dest='large_scale',
-                      help='whether use large imag scale',
+                      help='whether use large image scale',
                       action='store_true')                      
   parser.add_argument('--mGPUs', dest='mGPUs',
                       help='whether use multiple GPUs',
@@ -105,10 +105,10 @@ def parse_args():
                       default=0.001, type=float)
   parser.add_argument('--lr_decay_step', dest='lr_decay_step',
                       help='step to do learning rate decay, unit is epoch',
-                      default=5, type=int)
+                      default=3, type=int)
   parser.add_argument('--lr_decay_gamma', dest='lr_decay_gamma',
                       help='learning rate decay ratio',
-                      default=0.5, type=float)
+                      default=0.75, type=float)
 
 # set training session
   parser.add_argument('--s', dest='session',        ######
@@ -202,11 +202,8 @@ if __name__ == '__main__':
   
   args.depth = False # Custom 
   args.if_pretrained = True # Custom
-  args.if_bimodal = True # Custom
-  
-  if args.depth == True and args.if_bimodal == True:
-    print("ERROR: DEPTH AND BIMODAL VARIABLES CAN'T BE TRUE TOGETHER")
-    exit()
+  cfg.depth_only = False
+  cfg.TRAIN.SCALES = (200,)
     
     
   
@@ -297,7 +294,7 @@ if __name__ == '__main__':
   """
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
-  cfg.TRAIN.USE_FLIPPED = False
+  cfg.TRAIN.USE_FLIPPED = True
   cfg.USE_GPU_NMS = args.cuda
   cfg.TRAIN.USE_DEPTH = args.depth  
   cfg.TRAIN.IF_PRETRAINED = args.if_pretrained
@@ -485,21 +482,22 @@ if __name__ == '__main__':
     args.start_epoch = checkpoint['epoch']
     fasterRCNN.load_state_dict(checkpoint['model']) # Note that this was already initialized in resnet101.py or vgg16.py. The model is being overwritten here
     optimizer.load_state_dict(checkpoint['optimizer']) # optimizer is being overwritten too
-    #lr = optimizer.param_groups[0]['lr']
+    lr = optimizer.param_groups[0]['lr']
     if 'pooling_mode' in checkpoint.keys():
       cfg.POOLING_MODE = checkpoint['pooling_mode']
     print("loaded checkpoint %s" % (load_name))
 
   if args.mGPUs:
     fasterRCNN = nn.DataParallel(fasterRCNN)
+  
+  
+  print("The optimizer being used is: {}".format(args.optimizer))
 
 
 
 
 
-
-
-
+  
 
 
 
@@ -537,20 +535,22 @@ if __name__ == '__main__':
 
     data_iter = iter(dataloader)
     data_iter_depth = iter(dataloader_depth) # Custom
+    
     losses = []
-    for step in range(iters_per_epoch):
+    for step in range(iters_per_epoch):    	
+      cfg.depth_only = False # We add an extra parameter to give signals to minibatch.py
       data = next(data_iter)	# Loading the next batch of data to be used in training
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
       gt_boxes.data.resize_(data[2].size()).copy_(data[2])
       num_boxes.data.resize_(data[3].size()).copy_(data[3])
-      
+      cfg.depth_only = True
       data_depth = next(data_iter_depth)	# Loading the next batch of data to be used in training
       im_data_depth.data.resize_(data_depth[0].size()).copy_(data_depth[0])
       im_info_depth.data.resize_(data_depth[1].size()).copy_(data_depth[1])
       gt_boxes_depth.data.resize_(data_depth[2].size()).copy_(data_depth[2])
       num_boxes_depth.data.resize_(data_depth[3].size()).copy_(data_depth[3])
-      	
+      
       fasterRCNN.zero_grad()
       rois, cls_prob, bbox_pred, \
       rpn_loss_cls, rpn_loss_box, \
@@ -628,7 +628,7 @@ if __name__ == '__main__':
     print("Average_loss: {}".format(average_loss))
     print('save model: {}'.format(save_name)) # this is executed after every epoch. The model is stored after every epoch
     print()
-    track_file.write('save model: {}'.format(save_name))    
+    track_file.write('save model: {}\n'.format(save_name))    
     track_file.write('Average Loss: {}\n\n'.format(average_loss))
     
   if args.use_tfboard:		 # Some exception occurs here

@@ -45,20 +45,29 @@ class _fasterRCNN(nn.Module):
 
 
     def forward(self, im_data_a, im_info_a, gt_boxes_a, num_boxes_a, im_data_b, im_info_b, gt_boxes_b, num_boxes_b):
+        #print("start here")
+        #print(torch.equal(im_info_a,im_info_b))
+        #print(torch.equal(im_data_a,im_data_b))
+        #print(torch.equal(gt_boxes_a,gt_boxes_b))
+        #print(torch.equal(num_boxes_a,num_boxes_b))
+        #print(im_data_a.size(0))
+        #exit()
         
         
         batch_size = im_data_a.size(0)
         im_info = im_info_a.data
         gt_boxes = gt_boxes_a.data
         num_boxes = num_boxes_a.data
+        im_data_b = im_data_b[:,0:1,:] # Trim the Depth data tensor
+        
+       
 
 
         # feed image data to base model to obtain base feature map
-        rgb_feat = self.RCNN_preprocess_a(im_data_a)
-        depth_feat = self.RCNN_preprocess_b(im_data_b)
-        conc_feat = rgb_feat+depth_feat
+        rgb_feat = self.RCNN_preprocess_a(im_data_a) # Conv5
+        depth_feat = self.RCNN_preprocess_b(im_data_b) # Conv5
+        conc_feat = rgb_feat+ (0.25*depth_feat) #torch.cat((rgb_feat,depth_feat),1) 
         base_feat = self.RCNN_postprocess(conc_feat)
-        
         
         
         # feed base feature map tp RPN to obtain rois

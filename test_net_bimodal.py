@@ -28,8 +28,8 @@ from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.net_utils import save_net, load_net, vis_detections
-from model.faster_rcnn.vgg16 import vgg16
-from model.faster_rcnn.resnet_bimodal import resnet
+from model.faster_rcnn.vgg16_bimodal_early import vgg16
+from model.faster_rcnn.resnet_rgbd_early import resnet
 from torch.utils.data.sampler import Sampler
 import pdb
 
@@ -168,7 +168,7 @@ if __name__ == '__main__':
 
   cfg.TRAIN.USE_DEPTH = False
   cfg.TRAIN.USE_FLIPPED = False
-  
+  #cfg.TRAIN.SCALES = (200,)
   
   
   imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name, False)
@@ -278,7 +278,7 @@ if __name__ == '__main__':
   
   
   
-  
+ 
   
 
   if args.cuda:
@@ -326,14 +326,14 @@ if __name__ == '__main__':
   fasterRCNN.eval()
   empty_array = np.transpose(np.array([[],[],[],[],[]]), (1,0))
   with torch.no_grad():
-	  for i in range(num_images):
-	
+	  for i in range(num_images):	  	   
+	      cfg.depth_only = False
 	      data = next(data_iter)
 	      im_data.data.resize_(data[0].size()).copy_(data[0])
 	      im_info.data.resize_(data[1].size()).copy_(data[1])
 	      gt_boxes.data.resize_(data[2].size()).copy_(data[2])
 	      num_boxes.data.resize_(data[3].size()).copy_(data[3])
-	      
+	      cfg.depth_only = True
 	      data_depth = next(data_iter_depth)	# Loading the next batch of data to be used in training
 	      im_data_depth.data.resize_(data_depth[0].size()).copy_(data_depth[0])
 	      im_info_depth.data.resize_(data_depth[1].size()).copy_(data_depth[1])

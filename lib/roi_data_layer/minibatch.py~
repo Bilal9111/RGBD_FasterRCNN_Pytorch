@@ -62,26 +62,15 @@ def _get_image_blob(roidb, scale_inds):
   processed_ims = []
   im_scales = []
   
-  
-  
-  #print ("Breakpoint 1") 
-  #print ("num_images", num_images)         
+           
   for i in range(num_images):
     
-    
     im = cv2.imread(roidb[i]['image'])
-    #print ("im : ", im.shape)
-    
-    
-    
-    
     
     if len(im.shape) == 2:
       im = im[:,:,np.newaxis]
       im = np.concatenate((im,im,im), axis=2)
-      #print("this changed")
-    
-    
+       
     
     im = im[:,:,::-1] # flip the channel, since the original one using cv2 ... rgb -> bgr
     
@@ -91,16 +80,18 @@ def _get_image_blob(roidb, scale_inds):
     	img_gray = cv2.cvtColor(im_d, cv2.COLOR_BGR2GRAY)
     	im_merged = cv2.merge((im,img_gray))
       
-    
-    
+        
     if roidb[i]['flipped']:
       im_merged = im_merged[:, ::-1, :]
     target_size = cfg.TRAIN.SCALES[scale_inds[i]]
     
-    if cfg.TRAIN.USE_DEPTH:
-    	pixel_means = np.array([[[102.9801, 115.9465, 122.7717, 57.2776]]]) # cfg.PIXEL_MEANS
+    if cfg.depth_only == True:
+    	pixel_means = np.array([[[32, 32, 32]]]) # cfg.PIXEL_MEANS
     else:
-    	pixel_means = np.array([[[102.9801, 115.9465, 122.7717]]]) # cfg.PIXEL_MEANS    
+      if cfg.TRAIN.USE_DEPTH:
+    	  pixel_means = np.array([[[102.9801, 115.9465, 122.7717, 57.2776]]]) # cfg.PIXEL_MEANS
+      else:
+    	  pixel_means = np.array([[[102.9801, 115.9465, 122.7717]]]) # cfg.PIXEL_MEANS    
     im_merged, im_scale = prep_im_for_blob(im_merged, pixel_means, target_size,cfg.TRAIN.MAX_SIZE)
     im_scales.append(im_scale)
     processed_ims.append(im_merged)

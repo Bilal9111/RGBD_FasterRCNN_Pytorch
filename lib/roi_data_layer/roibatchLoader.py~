@@ -59,7 +59,12 @@ class roibatchLoader(data.Dataset):
         index_ratio = int(self.ratio_index[index])
     else:
         index_ratio = index
-
+        
+        
+    np.random.seed(0) # Random Seed set to zero to make gt_boxes same for RGBD merge
+    
+    
+    
     # get the anchor index for current sample index
     # here we set the anchor index to the last one
     # sample in this group

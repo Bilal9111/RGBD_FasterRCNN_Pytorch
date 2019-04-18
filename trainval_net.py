@@ -205,9 +205,9 @@ if __name__ == '__main__':
   
   
   args.depth = False # Custom 
-  args.if_pretrained = False # Custom
-  
-    
+  args.if_pretrained = True # Custom
+  cfg.depth_only = False
+  cfg.TRAIN.SCALES = (200,)
     
   
   '''

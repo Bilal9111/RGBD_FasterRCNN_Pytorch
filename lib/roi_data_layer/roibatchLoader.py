@@ -59,7 +59,11 @@ class roibatchLoader(data.Dataset):
         index_ratio = int(self.ratio_index[index])
     else:
         index_ratio = index
-
+        
+        
+    
+    
+    
     # get the anchor index for current sample index
     # here we set the anchor index to the last one
     # sample in this group
