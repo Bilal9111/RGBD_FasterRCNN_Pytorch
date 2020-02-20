@@ -217,15 +217,7 @@ python demo.py --net vgg16 \
                --cuda --load_dir path/to/model/directoy
 ```
 
-Then you will find the detection results in folder $ROOT/images.
 
-**Note the default demo.py merely support pascal_voc categories. You need to change the [line](https://github.com/jwyang/faster-rcnn.pytorch/blob/530f3fdccaa60d05fa068bc2148695211586bd88/demo.py#L156) to adapt your own model.**
-
-Below are some detection results:
-
-<div style="color:#0000FF" align="center">
-<img src="images/img3_det_res101.jpg" width="430"/> <img src="images/img4_det_res101.jpg" width="430"/>
-</div>
 
 ## Webcam Demo
 
